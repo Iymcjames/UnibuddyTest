@@ -21,6 +21,7 @@ import {
   LikeMessageDto,
   ResolveMessageDto,
   ReactionDto,
+  UpdateTagDto,
 } from './models/message.dto';
 import { MessageLogic } from './message.logic';
 import {
@@ -130,6 +131,15 @@ export class MessageResolver {
     @AuthenticatedUser() authenticatedUser: IAuthenticatedUser,
   ): Promise<ChatMessage> {
     return await this.messageLogic.like(likeMessageDto, authenticatedUser);
+  }
+
+  @Mutation(() => ChatMessage)
+  @UseGuards(GqlAuthGuard)
+  async updateTagConversationMessage(
+    @Args('updateTagDto') updateTagDto: UpdateTagDto,
+    @AuthenticatedUser() authenticatedUser: IAuthenticatedUser,
+  ): Promise<ChatMessage> {
+    return await this.messageLogic.updateTags(updateTagDto, authenticatedUser);
   }
 
   @Mutation(() => ChatMessage)

@@ -1,4 +1,10 @@
-import { forwardRef, Inject, Injectable } from '@nestjs/common';
+import {
+  forwardRef,
+  HttpException,
+  HttpStatus,
+  Inject,
+  Injectable,
+} from '@nestjs/common';
 import {
   ChatMessage,
   PaginatedChatMessages,
@@ -13,6 +19,7 @@ import {
   ResolveMessageDto,
   ReactionDto,
   PollOptionDto,
+  UpdateTagDto,
 } from './models/message.dto';
 import { MessageData } from './message.data';
 import { IAuthenticatedUser } from '../authentication/jwt.strategy';
@@ -47,6 +54,7 @@ import {
   MessageGroupedByConversationOutput,
   MessagesFilterInput,
 } from '../conversation/models/messagesFilterInput';
+import { Tag } from '../conversation/models/CreateChatConversation.dto';
 
 export interface IMessageLogic {
   create(
@@ -64,6 +72,11 @@ export interface IMessageLogic {
   getMessagesByConversation(
     messagesFilterInput: MessagesFilterInput,
   ): Promise<MessageGroupedByConversationOutput[]>;
+
+  updateTags(
+    updateTagDto: UpdateTagDto,
+    authenticatedUser: IAuthenticatedUser,
+  ): Promise<ChatMessage>;
 }
 
 @Injectable()
@@ -278,7 +291,6 @@ export class MessageLogic implements IMessageLogic {
     return blockedUsers.map((user) => user.blockedUserId);
   }
 
-
   async getChatConversationMessages(
     getMessageDto: GetMessageDto,
     authenticatedUser: IAuthenticatedUser,
@@ -313,7 +325,6 @@ export class MessageLogic implements IMessageLogic {
       paginatedChatMessages,
       blockedUserIds,
     );
-  
 
     return paginatedChatMessages;
   }
@@ -696,5 +707,23 @@ export class MessageLogic implements IMessageLogic {
     }
 
     return pollOption;
+  }
+
+  async updateTags(
+    updateTagDto: UpdateTagDto,
+    authenticatedUser: IAuthenticatedUser,
+  ): Promise<ChatMessage> {
+    try {
+      await this.throwForbiddenErrorIfNotAuthorized(
+        authenticatedUser,
+        updateTagDto.messageId,
+        Action.updateMessage,
+      );
+
+      const { messageId, tags } = updateTagDto;
+      return await this.messageData.updateTags(messageId, tags as Tag[]);
+    } catch (error) {
+      throw new HttpException('Message not found', HttpStatus.NOT_FOUND);
+    }
   }
 }

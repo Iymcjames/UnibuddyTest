@@ -59,7 +59,10 @@ import {
 } from '../conversation/models/lastMessage.dto';
 import { Permission } from '../conversation/models/Permission.dto';
 import { LastReadInput } from '../conversation/models/LastReadInput.dto';
-import { Tag } from '../conversation/models/CreateChatConversation.dto';
+import {
+  Tag,
+  TagType,
+} from '../conversation/models/CreateChatConversation.dto';
 
 const UNAUTHORISED_USER = new ObjectId('321b1a570ff321b1a570ff01');
 const validUser: IAuthenticatedUser = {
@@ -67,6 +70,8 @@ const validUser: IAuthenticatedUser = {
   accountRole: 'university',
   universityId: new ObjectId('abcdef123456abcdef000123'),
 };
+
+const tags = [{ id: '5fe0cce861c8ea54018385af', type: TagType.subTopic }];
 
 const messageId = new ObjectId('5fe0cce861c8ea54018385aa');
 const replyMessageId = new ObjectId('5fe0cce861c8ea54018385ab');
@@ -319,6 +324,23 @@ describe('MessageLogic', () => {
       };
     }
 
+    updateTags(userId: ObjectId, messageId: ObjectId) {
+      return {
+        _id: messageId,
+        text: 'Message 1',
+        senderId: userId,
+        conversationId,
+        created: new Date('2018-05-11T17:47:40.893Z'),
+        sender: { id: '5fe0cce861c8ea54018385af' },
+        conversation: { id: '5fe0cce861c8ea54018385ae' },
+        id: messageId,
+        deleted: false,
+        resolved: false,
+        likes: [],
+        tags,
+      };
+    }
+
     getChatConversationMessages(
       data: GetMessageDto,
     ): Promise<PaginatedChatMessages> {
@@ -549,7 +571,6 @@ describe('MessageLogic', () => {
   class MockConversationChannel {
     send = jest.fn();
   }
-
 
   class MockUserBlocksLogic implements IUserBlocksLogic {
     getBlockedUsers(
@@ -1444,6 +1465,18 @@ describe('MessageLogic', () => {
       await expect(
         messageLogic.removeVote(messageId, option, validUser),
       ).rejects.toEqual(expectedError);
+    });
+  });
+
+  describe('updateTags', () => {
+    it('can update a message with tags', async () => {
+      jest.spyOn(messageData, 'updateTags');
+      await messageLogic.updateTags(
+        { userId: senderId, messageId, tags },
+        validUser,
+      );
+
+      expect(messageData.updateTags).toHaveBeenCalledTimes(1);
     });
   });
 });

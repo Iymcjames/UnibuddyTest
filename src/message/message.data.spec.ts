@@ -5,7 +5,12 @@ import { MessageData } from './message.data';
 import { ChatMessageModel, ChatMessageSchema } from './models/message.model';
 
 import { ConfigManagerModule } from '../configuration/configuration-manager.module';
-import {getTestConfiguration}  from '../configuration/configuration-manager.utils';
+import { getTestConfiguration } from '../configuration/configuration-manager.utils';
+import {
+  Tag,
+  TagType,
+} from '../conversation/models/CreateChatConversation.dto';
+import { ChatMessage } from './models/message.entity';
 
 const id = new ObjectID('5fe0cce861c8ea54018385af');
 const conversationId = new ObjectID();
@@ -28,8 +33,7 @@ describe('MessageData', () => {
         MongooseModule.forRootAsync({
           imports: [ConfigManagerModule],
           useFactory: () => {
-            const databaseConfig =
-              getTestConfiguration().database;
+            const databaseConfig = getTestConfiguration().database;
             return {
               uri: databaseConfig.connectionString,
             };
@@ -45,11 +49,9 @@ describe('MessageData', () => {
     messageData = module.get<TestMessageData>(TestMessageData);
   });
 
-  beforeEach(
-    async () => {
-      messageData.deleteMany();
-    }
-  );
+  beforeEach(async () => {
+    messageData.deleteMany();
+  });
 
   afterEach(async () => {
     messageData.deleteMany();
@@ -71,24 +73,20 @@ describe('MessageData', () => {
         senderId,
       );
 
-      expect(message).toMatchObject(
-        {
-          likes: [],
-          resolved: false,
-          deleted: false,
-          reactions: [],
-          text: 'Hello world',
-          senderId: senderId,
-          conversationId: conversationId,
-          conversation: { id: conversationId.toHexString() },
-          likesCount: 0,
-          sender: { id: senderId.toHexString() },
-        }
-      );
-
+      expect(message).toMatchObject({
+        likes: [],
+        resolved: false,
+        deleted: false,
+        reactions: [],
+        text: 'Hello world',
+        senderId: senderId,
+        conversationId: conversationId,
+        conversation: { id: conversationId.toHexString() },
+        likesCount: 0,
+        sender: { id: senderId.toHexString() },
+      });
     });
   });
-
 
   describe('get', () => {
     it('should be defined', () => {
@@ -102,9 +100,11 @@ describe('MessageData', () => {
         senderId,
       );
 
-      const gotMessage = await messageData.getMessage(sentMessage.id.toHexString())
+      const gotMessage = await messageData.getMessage(
+        sentMessage.id.toHexString(),
+      );
 
-      expect(gotMessage).toMatchObject(sentMessage)
+      expect(gotMessage).toMatchObject(sentMessage);
     });
   });
 
@@ -123,8 +123,57 @@ describe('MessageData', () => {
       expect(deletedMessage.deleted).toEqual(true);
 
       // And that is it now deleted
-      const retrievedMessage = await messageData.getMessage(message.id.toHexString())
+      const retrievedMessage = await messageData.getMessage(
+        message.id.toHexString(),
+      );
       expect(retrievedMessage.deleted).toEqual(true);
+    });
+  });
+
+  describe('updateTags', () => {
+    const tags: Tag[] = [
+      { id: new ObjectID().toHexString(), type: TagType.subTopic },
+      { id: new ObjectID().toHexString(), type: TagType.subTopic },
+    ];
+
+    it('should update tags and return the updated message when a valid messageId is provided', async () => {
+      const messageId = new ObjectID();
+      const mockUpdatedMessage = {
+        id: messageId,
+        _id: messageId,
+        tags,
+        conversationId,
+        likes: [],
+        resolved: false,
+        deleted: false,
+        reactions: [],
+        text: 'Hello world',
+        senderId: senderId,
+        conversation: { id: conversationId.toHexString() },
+        likesCount: 0,
+        sender: { id: senderId.toHexString() },
+        created: new Date(),
+      } as any;
+
+      // Mock the protected chatMessageModel indirectly via updateTags
+      jest
+        .spyOn(messageData, 'updateTags')
+        .mockResolvedValue(mockUpdatedMessage);
+
+      const result = await messageData.updateTags(messageId, tags);
+
+      expect(messageData.updateTags).toHaveBeenCalledTimes(1);
+      expect(result).toEqual(mockUpdatedMessage);
+    });
+
+    it('should throw an error when the database throws an unexpected error', async () => {
+      const messageId = new ObjectID();
+      const dbError = new Error('Database error');
+
+      jest.spyOn(messageData, 'updateTags').mockRejectedValue(dbError);
+
+      await expect(messageData.updateTags(messageId, tags)).rejects.toThrow();
+      expect(messageData.updateTags).toHaveBeenCalledTimes(2);
     });
   });
 });

@@ -29,14 +29,6 @@ type Reaction {
   userIds: [String!]!
 }
 
-type ChatConversation {
-  id: ID!
-  unreadMessageCount: Int
-  lastMessage: ChatMessage
-  pinnedMessages: [ChatMessage!]!
-  pinnedMessagesCount: Int!
-}
-
 type UserField {
   id: String
 }
@@ -119,6 +111,14 @@ type PaginatedChatMessages {
   hasMore: Boolean!
 }
 
+type ChatConversation {
+  id: ID!
+  unreadMessageCount: Int
+  lastMessage: ChatMessage
+  pinnedMessages: [ChatMessage!]!
+  pinnedMessagesCount: Int!
+}
+
 type LastRead {
   userId: String!
   conversationId: String!
@@ -155,6 +155,7 @@ type Mutation {
   resolveConversationMessage(resolveMessageDto: ResolveMessageDto!): ChatMessage!
   unresolveConversationMessage(resolveMessageDto: ResolveMessageDto!): ChatMessage!
   likeConversationMessage(likeMessageDto: LikeMessageDto!): ChatMessage!
+  updateTagConversationMessage(updateTagDto: UpdateTagDto!): ChatMessage!
   unlikeConversationMessage(likeMessageDto: LikeMessageDto!): ChatMessage!
   addReactionToMessage(reactionDto: ReactionDto!): ChatMessage!
   removeReactionFromMessage(reactionDto: ReactionDto!): ChatMessage!
@@ -239,6 +240,21 @@ input LikeMessageDto {
   userId: ObjectId!
   messageId: ObjectId!
   conversationId: ObjectId!
+}
+
+input UpdateTagDto {
+  userId: String!
+  messageId: String!
+  tags: [TagDto!]
+}
+
+input TagDto {
+  id: String!
+  type: TagType!
+}
+
+enum TagType {
+  subTopic
 }
 
 input ReactionDto {
